@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi UTS Pendidikan Pancasila Kelas VIII SMP</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0a3854',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Lock view on exam mode */
+        .exam-locked {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background: #f8fafc;
+            overflow-y: auto;
+        }
+
+        /* PRINT STYLES FOR OFFICIAL EXAM CERTIFICATE */
+        @media print {
+            header, footer, #cheat-warning-badge, .no-print, #header-teacher-btn, #modal-teacher, #modal-teacher-auth, #custom-toast, #custom-modal-notice, #custom-modal-confirm, .exam-top-nav, button {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                user-select: auto !important;
+                -webkit-user-select: auto !important;
+            }
+            #screen-result {
+                display: block !important;
+                box-shadow: none !important;
+                border: none !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10px !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        .print-only {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- TOP HEADER / BRANDING -->
+    <header id="main-header" class="bg-gradient-to-r from-red-700 via-red-800 to-brand-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white p-2 rounded-lg text-red-700 font-bold text-xl shadow">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg leading-tight uppercase tracking-wider">Ujian Tengah Semester (UTS)</h1>
+                    <p class="text-xs text-red-200">Pendidikan Pancasila — Kelas VIII SMP | Bab 1: Pancasila dalam Kehidupan Bangsaku</p>
+                </div>
+            </div>
+            <div id="header-teacher-btn">
+                <button onclick="openTeacherAuthModal()" class="bg-white/10 hover:bg-white/20 text-xs text-white px-3.5 py-2 rounded-xl border border-white/20 backdrop-blur-sm transition flex items-center gap-1.5 font-bold shadow-sm">
+                    <i class="fa-solid fa-user-tie text-amber-300"></i> Dashboard Guru
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- TEACHER SETTINGS & MONITORING DASHBOARD MODAL -->
+    <div id="modal-teacher" class="hidden fixed inset-0 bg-black/70 backdrop-blur-md z-[10000] flex items-center justify-center p-3 md:p-6 no-print">
+        <div class="bg-white rounded-2xl max-w-5xl w-full p-5 md:p-6 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto space-y-5 flex flex-col">
+            
+            <!-- MODAL HEADER WITH TABS -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3 gap-3">
+                <div class="flex items-center gap-2">
+                    <div class="bg-red-100 text-red-700 p-2 rounded-xl">
+                        <i class="fa-solid fa-graduation-cap text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Panel Kontrol & Integrasi Google Sheets</h3>
+                        <p class="text-xs text-slate-500">Kelola koneksi Google Sheets, pantau hasil ujian siswa, & nilai soal uraian</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                    <!-- TAB NAVIGATION -->
+                    <div class="bg-slate-100 p-1 rounded-xl flex text-xs font-bold">
+                        <button id="tab-btn-setup" onclick="switchTeacherTab('setup')" class="px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm transition">
+                            <i class="fa-solid fa-plug text-red-600 me-1"></i> Integrasi Sheets
+                        </button>
+                        <button id="tab-btn-monitor" onclick="switchTeacherTab('monitor')" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                            <i class="fa-solid fa-table-list text-emerald-600 me-1"></i> Live Monitor & Nilai
+                        </button>
+                    </div>
+                    <button onclick="toggleTeacherModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold px-2">&times;</button>
+                </div>
+            </div>
+
+            <!-- TAB 1: INTEGRASI GOOGLE SHEETS SETUP -->
+            <div id="teacher-tab-setup" class="space-y-4">
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl text-xs text-blue-950 space-y-1">
+                    <div class="font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-600"></i> Cara Otomatis Menghubungkan ke Google Spreadsheet:
+                    </div>
+                    <p>1. Buat Google Sheet baru &amp; buka menu <strong>Ekstensi &rarr; Apps Script</strong>.</p>
+                    <p>2. Hapus seluruh isi lalu <strong>Salin &amp; Tempelkan</strong> kode di bawah ke Apps Script.</p>
+                    <p>3. Klik <strong>Deploy / Terapkan &rarr; Deployment Baru</strong>. Pilih <em>Jenis: Aplikasi Web</em>, <em>Jalankan Sebagai: Saya</em>, <em>Akses: Siapa saja (Anyone)</em>.</p>
+                    <p>4. Tempelkan URL Webhook yang dihasilkan ke kolom di bawah ini lalu klik <strong>Simpan &amp; Uji</strong>!</p>
+                </div>
+
+                <!-- WEBHOOK URL INPUT WITH TEST BUTTON -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <label class="block text-xs font-bold text-slate-700 uppercase">
+                        URL Webhook Google Apps Script <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="setting-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 px-3.5 py-2.5 border rounded-xl text-xs font-mono focus:ring-2 focus:ring-red-500 outline-none bg-white">
+                        <button onclick="testWebhookConnection()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow">
+                            <i class="fa-solid fa-paper-plane"></i> Uji &amp; Simpan Webhook
+                        </button>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Status Simpan: <strong id="webhook-saved-status" class="text-slate-700">Tersimpan di Sistem</strong></span>
+                        <button onclick="saveTeacherSettings()" class="text-red-600 font-bold hover:underline">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Simpan URL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GOOGLE APPS SCRIPT CODE BOX -->
+                <div class="bg-slate-900 rounded-xl p-4 space-y-2 text-white">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+                            <i class="fa-brands fa-google-drive"></i> Kode Google Apps Script (Versi 2 - Bebas CORS & Otomatis Update):
+                        </span>
+                        <button onclick="copyScriptCode()" class="bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold px-3 py-1 rounded-lg border border-white/30 transition flex items-center gap-1">
+                            <i class="fa-regular fa-copy me-1"></i> Salin Kode Skrip
+                        </button>
+                    </div>
+
+                    <textarea id="script-code" readonly class="w-full h-48 bg-slate-950 text-emerald-300 text-[11px] font-mono p-3 rounded-lg border border-slate-800 focus:outline-none leading-relaxed">
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = {};
+    
+    if (e && e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    }
+    
+    // Format Otomatis Baris Judul Kolom (Header)
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        "Waktu Kumpul", "Nama Siswa", "NISN", "Kelas", 
+        "Skor Objektif (Max 80)", "Pelanggaran (Pindah Tab)", 
+        "Jawaban Uraian No.29", "Jawaban Uraian No.30"
+      ]);
+      sheet.getRange("1:1").setFontWeight("bold").setBackground("#cbd5e1");
+      sheet.setFrozenRows(1);
+    }
+    
+    // Respon Uji Koneksi
+    if (data.isTest) {
+      return ContentService.createTextOutput(JSON.stringify({result: "success", message: "Koneksi Webhook Berhasil!"}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Simpan Data Ujian Siswa (Tambahkan petik tunggal pada NISN agar 0 tidak hilang)
+    sheet.appendRow([
+      data.timestamp || new Date().toLocaleString("id-ID"),
+      data.nama || "-",
+      "'" + (data.nisn || "-"),
+      data.kelas || "-",
+      data.skorObjektif !== undefined ? data.skorObjektif : 0,
+      data.pindahTab !== undefined ? data.pindahTab : 0,
+      data.jawabanUraian29 || "-",
+      data.jawabanUraian30 || "-"
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({result: "success"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({result: "error", error: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput("Webhook UTS Pendidikan Pancasila Aktif dan Siap Digunakan!");
+}
+</textarea>
+                </div>
+            </div>
+
+            <!-- TAB 2: LIVE MONITOR & ESSAY GRADING DASHBOARD -->
+            <div id="teacher-tab-monitor" class="hidden space-y-4">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border">
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <input type="text" id="monitor-search" oninput="filterMonitorTable()" placeholder="Cari nama atau NISN..." class="px-3 py-1.5 border rounded-lg text-xs w-full sm:w-48 bg-white focus:ring-2 focus:ring-red-500 outline-none">
+                        <select id="monitor-filter-kelas" onchange="filterMonitorTable()" class="px-3 py-1.5 border rounded-lg text-xs bg-white focus:ring-2 focus:ring-red-500 outline-none">
+                            <option value="">Semua Kelas</option>
+                            <option value="VIII A">VIII A</option>
+                            <option value="VIII B">VIII B</option>
+                           
+                        </select>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="downloadAllSubmissionsCSV()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1">
+                            <i class="fa-solid fa-file-excel text-emerald-400 me-1"></i> Unduh Rekap Excel (CSV)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TABLE MONITORING -->
+                <div class="overflow-x-auto border rounded-xl bg-white max-h-[380px]">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 border-b">
+                            <tr>
+                                <th class="p-3">No</th>
+                                <th class="p-3">Siswa</th>
+                                <th class="p-3">Kelas / NISN</th>
+                                <th class="p-3 text-center">Skor Objektif</th>
+                                <th class="p-3 text-center">Nilai Uraian 29 (Max 10)</th>
+                                <th class="p-3 text-center">Nilai Uraian 30 (Max 10)</th>
+                                <th class="p-3 text-center">Total Akhir</th>
+                                <th class="p-3 text-center">Pindah Tab</th>
+                                <th class="p-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monitor-table-body" class="divide-y divide-slate-100 text-slate-700">
+                            <tr>
+                                <td colspan="9" class="p-8 text-center text-slate-400">
+                                    <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+                                    Belum ada data hasil ujian dikumpulkan.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-3 border-t">
+                <button onclick="toggleTeacherModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-5 py-2 rounded-xl text-xs transition">
+                    Tutup Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEACHER PIN AUTH MODAL -->
+    <div id="modal-teacher-auth" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[25000] flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-4">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">Masukan PIN Guru</h3>
+            <p class="text-xs text-slate-500">Masukkan PIN Keamanan untuk membuka Dashboard Guru (Default: <code class="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-red-600">GURU123</code>)</p>
+            
+            <input type="password" id="input-teacher-pin" placeholder="Masukkan PIN" class="w-full text-center px-4 py-2.5 border-2 rounded-xl text-base font-mono font-bold focus:border-red-600 outline-none">
+            
+            <div class="flex gap-2">
+                <button onclick="closeTeacherAuthModal()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-xl text-xs transition">
+                    Batal
+                </button>
+                <button onclick="verifyTeacherPin()" class="w-1/2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl text-xs transition shadow">
+                    Masuk
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-1">
+        
+        <!-- SCREEN 1: START EXAM FORM -->
+        <div id="screen-start" class="max-w-xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 p-6 md:p-8 space-y-6 no-print">
+            <div class="text-center space-y-2 border-b pb-5">
+                <div class="inline-flex p-3 rounded-2xl bg-red-50 text-red-700 mb-1">
+                    <i class="fa-solid fa-file-pen text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-slate-800">Lembar Ujian Siswa</h2>
+                <p class="text-xs text-slate-500 leading-relaxed">Silakan isi identitas lengkap dan token ujian yang diberikan oleh guru pengawas untuk memulai ujian.</p>
+            </div>
+
+            <div class="space-y-4 text-xs font-semibold">
+                <div>
+                    <label class="block mb-1 text-slate-700">Nama Lengkap Siswa <span class="text-red-500">*</span></label>
+                    <input type="text" id="input-nama" placeholder="Contoh: Ahmad Fauzi" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-slate-50 focus:bg-white text-sm">
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block mb-1 text-slate-700">NISN <span class="text-red-500">*</span></label>
+                        <input type="text" id="input-nisn" placeholder="10 Digit NISN" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-slate-50 focus:bg-white text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-slate-700">Kelas <span class="text-red-500">*</span></label>
+                        <select id="input-kelas" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-slate-50 focus:bg-white text-sm">
+                            <option value="">-- Pilih Kelas --</option>
+                            <option value="VIII A">VIII A</option>
+                            <option value="VIII B">VIII B</option>
+                           
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block mb-1 text-slate-700">Token Ujian <span class="text-red-500">*</span></label>
+                    <input type="text" id="input-token" placeholder="Default: UTS2026" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-slate-50 focus:bg-white text-sm font-mono font-bold tracking-widest text-center uppercase">
+                </div>
+            </div>
+
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-3.5 rounded-r-xl text-[11px] text-amber-900 space-y-1">
+                <div class="font-bold flex items-center gap-1.5 text-amber-800">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Peraturan Ujian:
+                </div>
+                <ul class="list-disc list-inside space-y-0.5 text-slate-700">
+                    <li>Jumlah Soal: <strong>30 Soal</strong> (PG, PG Kompleks, Benar/Salah, Menjodohkan, Uraian).</li>
+                    <li>Estimasi Waktu: <strong>150 Menit</strong>.</li>
+                    <li>Dilarang berpindah tab/membuka peramban lain saat ujian berlangsung. Setiap perpindahan layar dicatat sistem!</li>
+                </ul>
+            </div>
+
+            <button onclick="startExam()" class="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transition transform active:scale-[0.98] text-sm flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i> Mulai Kerjakan Ujian Sekarang
+            </button>
+        </div>
+
+        <!-- SCREEN 2: ACTIVE EXAM INTERFACE (EXAM LOCKED) -->
+        <div id="screen-exam" class="hidden flex flex-col h-full bg-slate-100 no-print">
+            <!-- EXAM TOP BAR -->
+            <div class="bg-slate-900 text-white px-4 py-3 shadow-lg flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 exam-top-nav">
+                <div class="flex items-center gap-3">
+                    <div class="bg-red-600 text-white font-black px-3 py-1 rounded-lg text-xs font-mono tracking-wider">
+                        UTS VIII
+                    </div>
+                    <div>
+                        <div id="exam-student-info" class="text-xs font-bold text-slate-200">Ahmad Fauzi | VIII A</div>
+                        <div class="text-[10px] text-slate-400">Pendidikan Pancasila Bab 1</div>
+                    </div>
+                </div>
+
+                <!-- WARNING BADGE & TIMER -->
+                <div class="flex items-center gap-3">
+                    <div id="cheat-warning-badge" class="hidden bg-red-500/20 text-red-300 border border-red-500/40 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 animate-pulse">
+                        <i class="fa-solid fa-triangle-exclamation text-red-400"></i> Pindah Tab: <span id="cheat-count">0</span>x
+                    </div>
+
+                    <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                        <i class="fa-regular fa-clock text-amber-400 text-sm"></i>
+                        <span id="timer-display" class="font-mono font-bold text-sm text-amber-300">150:00</span>
+                    </div>
+
+                    <button onclick="confirmSubmitExam()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-1.5 rounded-xl text-xs transition shadow flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane"></i> Kumpulkan
+                    </button>
+                </div>
+            </div>
+
+            <!-- EXAM MAIN WORKSPACE -->
+            <div class="max-w-7xl mx-auto w-full p-4 md:p-6 flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 overflow-y-auto">
+                
+                <!-- QUESTION DISPLAY AREA (COL-SPAN 3) -->
+                <div class="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-7 flex flex-col justify-between space-y-6">
+                    
+                    <div class="space-y-4">
+                        <!-- QUESTION HEADER -->
+                        <div class="flex items-center justify-between border-b pb-3">
+                            <div class="flex items-center gap-2">
+                                <span id="q-number-badge" class="bg-red-700 text-white font-bold px-3 py-1 rounded-lg text-xs">Soal No. 1</span>
+                                <span id="q-type-badge" class="bg-slate-100 text-slate-700 border text-[11px] font-semibold px-2.5 py-0.5 rounded-md">Pilihan Ganda</span>
+                            </div>
+                            <button id="btn-flag" onclick="toggleFlag()" class="text-xs font-bold text-slate-400 hover:text-amber-500 transition flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200">
+                                <i class="fa-solid fa-bookmark"></i> Tandai Ragu-ragu
+                            </button>
+                        </div>
+
+                        <!-- QUESTION TEXT -->
+                        <div id="q-text" class="text-sm md:text-base text-slate-800 leading-relaxed font-medium pt-2">
+                            Memuat soal...
+                        </div>
+
+                        <!-- QUESTION OPTIONS CONTAINER -->
+                        <div id="q-options" class="space-y-3 pt-2">
+                            <!-- Dynamic options -->
+                        </div>
+                    </div>
+
+                    <!-- PREV / NEXT NAVIGATION BUTTONS -->
+                    <div class="flex items-center justify-between pt-4 border-t gap-3">
+                        <button id="btn-prev" onclick="prevQuestion()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-arrow-left"></i> Sebelumnya
+                        </button>
+                        
+                        <span id="q-progress-text" class="text-xs text-slate-400 font-medium hidden sm:inline-block">1 dari 30 Soal</span>
+
+                        <button id="btn-next" onclick="nextQuestion()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow">
+                            Selanjutnya <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QUESTION PALETTE / NAVIGATION GRID (COL-SPAN 1) -->
+                <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4 h-fit">
+                    <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between border-b pb-2">
+                        <span>Navigasi Soal</span>
+                        <span class="text-[10px] text-slate-400 font-normal">30 Soal</span>
+                    </h3>
+
+                    <div id="question-palette" class="grid grid-cols-5 gap-2 max-h-[350px] overflow-y-auto pr-1">
+                        <!-- Dynamic Palette Buttons -->
+                    </div>
+
+                    <div class="pt-3 border-t space-y-1.5 text-[11px] text-slate-500">
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-brand-600 inline-block"></span> Sudah Dijawab</div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-amber-400 inline-block"></span> Ragu-ragu</div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-slate-100 border inline-block"></span> Belum Dijawab</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: EXAM RESULT SUMMARY & PRINTABLE CERTIFICATE -->
+        <div id="screen-result" class="hidden max-w-3xl mx-auto bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 md:p-8 space-y-6">
+            
+            <!-- PRINTABLE OFFICIAL HEADER (VISIBLE ON PRINT) -->
+            <div class="print-only text-center border-b-2 border-black pb-4 mb-4">
+                <h1 class="text-xl font-bold uppercase tracking-wide"> KEMENTRIAN SOSIAL REPUBLIK INDONESIA </h1>
+  <h2 class="text-lg font-bold uppercase"> PUSAT PENDIDIKAN, PELATIHAN DAN PENGEMBANGAN PROFESI KESEJAHTERAAN SOSIAL </h2>
+
+                <h3 class="text-sm font-semibold uppercase">SEKOLAH RAKYAT TERINTEGRASI 10 ACEH SELATAN
+</h3>
+                <h4 class="text-sm font-semibold uppercase">LEMBAR HASIL UJIAN TENGAH SEMESTER (UTS) KELAS VIII</h4>
+
+                <p class="text-xs text-slate-600">Mata Pelajaran: Pendidikan Pancasila | Kurikulum Merdeka (Bab 1)</p>
+            </div>
+
+            <!-- SUCCESS ICON & TITLE (HIDDEN ON PRINT) -->
+            <div class="text-center space-y-1 border-b pb-4 no-print">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold shadow-sm mb-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-slate-800">Ujian Berhasil Dikumpulkan!</h2>
+                <p class="text-xs text-slate-500">Jawaban Anda telah berhasil tersimpan dan terkirim ke sistem guru.</p>
+            </div>
+
+            <!-- RESULT CARD SCORES -->
+            <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border">
+                <div class="p-3 bg-white rounded-xl border text-center">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase">Skor Objektif</span>
+                    <div id="res-objective-score" class="text-2xl font-extrabold text-brand-600">0 / 80</div>
+                    <span class="text-[10px] text-slate-400">(PG, Centang, B/S, Match)</span>
+                </div>
+                <div class="p-3 bg-white rounded-xl border text-center">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase">Total + Uraian</span>
+                    <div id="res-total-score" class="text-2xl font-extrabold text-emerald-600">-- / 100</div>
+                    <span class="text-[10px] text-slate-400">(Proses Koreksi Guru)</span>
+                </div>
+            </div>
+
+            <!-- DETAIL SISWA & WEBHOOK STATUS -->
+            <div class="text-xs bg-slate-50 p-4 rounded-xl border space-y-2">
+                <div class="flex justify-between"><span>Nama Siswa:</span> <strong id="res-nama" class="text-slate-800">---</strong></div>
+                <div class="flex justify-between"><span>Kelas / NISN:</span> <strong id="res-kelas" class="text-slate-800">---</strong></div>
+                <div class="flex justify-between"><span>Waktu Kumpul:</span> <strong id="res-waktu" class="text-slate-800">---</strong></div>
+                <div class="flex justify-between"><span>Pelanggaran Pindah Tab:</span> <strong id="res-cheat" class="text-red-600 font-bold">0 kali</strong></div>
+                <div class="flex justify-between border-t pt-2 mt-1 no-print"><span>Status Google Sheets:</span> <span id="res-sheet-status" class="font-bold text-slate-600">Mengecek...</span></div>
+            </div>
+
+            <!-- ESSAY ANSWERS SUMMARY PRINT SECTION -->
+            <div class="space-y-3 pt-2 text-xs">
+                <h4 class="font-bold text-slate-800 border-b pb-1">Lembar Jawaban Soal Uraian Siswa:</h4>
+                <div class="p-3 bg-slate-50 rounded-xl border space-y-1">
+                    <span class="font-bold text-slate-700">Jawaban No. 29 (Weltanschauung):</span>
+                    <p id="res-essay-29" class="text-slate-600 italic bg-white p-2.5 rounded border">---</p>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl border space-y-1">
+                    <span class="font-bold text-slate-700">Jawaban No. 30 (Mencegah Bullying):</span>
+                    <p id="res-essay-30" class="text-slate-600 italic bg-white p-2.5 rounded border">---</p>
+                </div>
+            </div>
+
+            <!-- PRINT OFFICIAL SIGNATURE BLOCK -->
+            <div class="print-only pt-8 grid grid-cols-2 gap-8 text-center text-xs">
+                <div>
+                    <p class="font-bold border-t border-black inline-block px-8 pt-1">( ..................................... )</p>
+                </div>
+                <div>
+                    <p class="mb-12">Guru Pengawas / Pengampu,</p>
+                    <p class="font-bold border-t border-black inline-block px-8 pt-1">( ..................................... )</p>
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS (HIDDEN ON PRINT) -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-2 no-print">
+                <button onclick="printExamCertificate()" class="w-full sm:w-1/2 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow">
+                    <i class="fa-solid fa-print"></i> Cetak Bukti Ujian
+                </button>
+                <button onclick="location.reload()" class="w-full sm:w-1/2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow">
+                    <i class="fa-solid fa-house"></i> Kembali ke Awal
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer id="main-footer" class="bg-white border-t py-4 text-center text-xs text-slate-400 no-print">
+        <div class="max-w-7xl mx-auto px-4">
+            Aplikasi UTS Pendidikan Pancasila Kelas VIII SMP &copy; 2026 — Sesuai Kurikulum Merdeka (Bab 1)
+        </div>
+    </footer>
+
+    <!-- CUSTOM TOAST NOTIFICATION -->
+    <div id="custom-toast" class="hidden fixed bottom-5 right-5 z-[20000] bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-3 transition-all duration-300 transform translate-y-10 opacity-0 no-print">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-message" class="text-sm font-medium">Notifikasi</span>
+    </div>
+
+    <!-- CUSTOM NOTICE MODAL -->
+    <div id="custom-modal-notice" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[20000] flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-center">
+            <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+                <i id="notice-icon" class="fa-solid fa-circle-info text-2xl text-brand-500"></i>
+            </div>
+            <h3 id="notice-title" class="text-lg font-bold text-slate-800">Pemberitahuan</h3>
+            <p id="notice-message" class="text-sm text-slate-600 leading-relaxed font-medium">Pesan pemberitahuan...</p>
+            <button onclick="closeNoticeModal()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                Mengerti
+            </button>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRM MODAL -->
+    <div id="custom-modal-confirm" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[20000] flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-center">
+            <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+                <i class="fa-solid fa-question text-2xl text-amber-600"></i>
+            </div>
+            <h3 id="confirm-title" class="text-lg font-bold text-slate-800">Konfirmasi</h3>
+            <p id="confirm-message" class="text-sm text-slate-600 leading-relaxed font-medium">Apakah Anda yakin?</p>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeConfirmModal(false)" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                    Batal
+                </button>
+                <button onclick="closeConfirmModal(true)" class="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm shadow">
+                    Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC & EXAM ENGINE -->
+    <script>
+        // CRITICAL: PASTE YOUR WEBHOOK URL HERE SO ALL STUDENTS AUTOMATICALLY SEND SCORES TO YOUR GOOGLE SHEET
+        const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzZiaSC1d4KMRe_fzvXYFIouvpyK4gI56v2-gbvco9XuHqc1CZxeJdijJr8CoJk0Ov5dA/exec"; 
+
+        // 30 SOAL UTS PENDIDIKAN PANCASILA KELAS VIII (BAB 1)
+        const examQuestions = [
+            // --- 15 SOAL PILIHAN GANDA (@2 POIN = 30 POIN) ---
+            {
+                id: 1, type: 'pg', weight: 2,
+                text: 'Rumusan Pancasila secara legal formal dan resmi sebagai dasar negara Indonesia termaktub di dalam...',
+                options: [
+                    'Piagam Jakarta tanggal 22 Juni 1945',
+                    'Pembukaan UUD NRI Tahun 1945 alinea keempat',
+                    'Batang Tubuh dan Penjelasan UUD 1945',
+                    'Ketetapan MPRS Nomor XX/MPRS/1966'
+                ],
+                correct: 1
+            },
+            {
+                id: 2, type: 'pg', weight: 2,
+                text: 'Istilah "Weltanschauung" yang disampaikan oleh Ir. Soekarno dalam pidatonya pada tanggal 1 Juni 1945 memiliki makna sebagai...',
+                options: [
+                    'Sistem hukum tertulis negara',
+                    'Sekumpulan nilai-nilai luhur yang menjadi orientasi atau panduan dalam memahami dan menjalani kehidupan',
+                    'Cita-cita ekspansi wilayah kekuasaan negara',
+                    'Dokumen perjanjian internasional antarbangsa'
+                ],
+                correct: 1
+            },
+            {
+                id: 3, type: 'pg', weight: 2,
+                text: 'Kata "Weltanschauung" berasal dari bahasa Jerman, yaitu kata "welt" dan "anschauung" yang masing-masing secara bahasa berarti...',
+                options: [
+                    'Bangsa dan Hukum',
+                    'Dunia dan Pandangan/Persepsi',
+                    'Negara dan Kebudayaan',
+                    'Masyarakat dan Keadilan'
+                ],
+                correct: 1
+            },
+            {
+                id: 4, type: 'pg', weight: 2,
+                text: 'Secara etimologi, kata "ideologi" berasal dari bahasa Yunani yaitu "idea" dan "logos". Kata "idea" mempunyai arti...',
+                options: [
+                    'Ilmu pengetahuan modern',
+                    'Gagasan, konsep, pengertian dasar, dan cita-cita',
+                    'Sistem norma dan hukum',
+                    'Kebijaksanaan nasional'
+                ],
+                correct: 1
+            },
+            {
+                id: 5, type: 'pg', weight: 2,
+                text: 'Pemerintah menjamin kemerdekaan tiap-tiap penduduk untuk memeluk agamanya masing-masing dan beribadah menurut agama dan kepercayaannya. Hal ini merupakan bentuk pengamalan Pancasila sila ke-...',
+                options: [
+                    'Sila Pertama',
+                    'Sila Kedua',
+                    'Sila Ketiga',
+                    'Sila Keempat'
+                ],
+                correct: 0
+            },
+            {
+                id: 6, type: 'pg', weight: 2,
+                text: 'Sikap saling menghormati antar teman, tidak saling mengejek, serta menghindari tindakan perundungan (bullying) di lingkungan sekolah merupakan cerminan pengamalan Pancasila sebagai...',
+                options: [
+                    'Pandangan hidup bangsa dan dasar negara',
+                    'Aturan hukum pidana internasional',
+                    'Kebijakan ekonomi daerah',
+                    'Peraturan militer sekolah'
+                ],
+                correct: 0
+            },
+            {
+                id: 7, type: 'pg', weight: 2,
+                text: 'Gaya hidup yang mengutamakan konsumsi atau penggunaan barang-barang secara berlebihan disebut...',
+                options: [
+                    'Hedonisme',
+                    'Konsumerisme',
+                    'Individualisme',
+                    'Etnosentrisme'
+                ],
+                correct: 1
+            },
+            {
+                id: 8, type: 'pg', weight: 2,
+                text: 'Gaya hidup yang menekankan pencarian kesenangan pribadi dan kepuasan materi sebagai tujuan utama dalam hidup dinamakan...',
+                options: [
+                    'Konsumerisme',
+                    'Hedonisme',
+                    'Nasionalisme',
+                    'Patriotisme'
+                ],
+                correct: 1
+            },
+            {
+                id: 9, type: 'pg', weight: 2,
+                text: 'Kedudukan Pancasila sebagai fondasi utama yang menopang dan menjadi dasar dalam seluruh penyelenggaraan negara Indonesia disebut...',
+                options: [
+                    'Pancasila sebagai Pandangan Hidup Bangsa',
+                    'Pancasila sebagai Dasar Negara',
+                    'Pancasila sebagai Ideologi Negara',
+                    'Pancasila sebagai Perjanjian Luhur'
+                ],
+                correct: 1
+            },
+            {
+                id: 10, type: 'pg', weight: 2,
+                text: 'Dalam lingkungan masyarakat, penyelesaian persoalan bersama hendaknya dilakukan dengan mengutamakan prinsip...',
+                options: [
+                    'Pemungutan suara tanpa diskusi',
+                    'Musyawarah untuk mufakat',
+                    'Keputusan sepihak dari tokoh masyarakat',
+                    'Kekuatan fisik dan kelompok terbanyak'
+                ],
+                correct: 1
+            },
+            {
+                id: 11, type: 'pg', weight: 2,
+                text: 'Membangun "Profil Pelajar Pancasila" sebagai tujuan pendidikan di sekolah merupakan penerapan Pancasila dalam kedudukannya sebagai...',
+                options: [
+                    'Ideologi Negara',
+                    'Dasar Hukum Pidana',
+                    'Peraturan Daerah',
+                    'Hukum Internasional'
+                ],
+                correct: 0
+            },
+            {
+                id: 12, type: 'pg', weight: 2,
+                text: 'Tindakan aktif warga dalam membantu tetangga yang sedang tertimpa musibah duka atau bencana merupakan wujud nyata dari...',
+                options: [
+                    'Gaya hidup konsumerisme',
+                    'Solidaritas sosial dan kebersamaan',
+                    'Sikap hedonisme',
+                    'Persaingan antarwarga'
+                ],
+                correct: 1
+            },
+            {
+                id: 13, type: 'pg', weight: 2,
+                text: 'Arah yang diberikan oleh Sila Keempat Pancasila dalam kehidupan bernegara adalah...',
+                options: [
+                    'Menjamin kebebasan beragama sepenuhnya',
+                    'Pengambilan keputusan dan kebijakan negara melalui proses pembahasan dan musyawarah mufakat',
+                    'Mewujudkan kekuatan militer terkuat',
+                    'Menghapus seluruh bentuk hukum tertulis'
+                ],
+                correct: 1
+            },
+            {
+                id: 14, type: 'pg', weight: 2,
+                text: 'Pengamalan nilai Pancasila sebagai pandangan hidup di lingkungan KELUARGA ditunjukkan dengan cara...',
+                options: [
+                    'Membeli barang-barang mewah secara berlebihan',
+                    'Membiasakan hidup sederhana dan mengutamakan kebermanfaatan bagi sesama',
+                    'Mengabaikan nasihat orang tua',
+                    'Memaksa kehendak pribadi kepada seluruh anggota keluarga'
+                ],
+                correct: 1
+            },
+            {
+                id: 15, type: 'pg', weight: 2,
+                text: 'Tujuan utama dari Sila Kelima "Keadilan Sosial bagi Seluruh Rakyat Indonesia" dalam penyelenggaraan negara adalah...',
+                options: [
+                    'Memberikan keuntungan ekonomi hanya untuk pejabat',
+                    'Mewujudkan kesejahteraan sosial yang adil dan merata bagi seluruh rakyat',
+                    'Mengutamakan pembangunan di kota besar saja',
+                    'Menghapus hak milik pribadi secara sepihak'
+                ],
+                correct: 1
+            },
+
+            // --- 5 SOAL PILIHAN GANDA KOMPLEKS (@4 POIN = 20 POIN) ---
+            {
+                id: 16, type: 'complex', weight: 4,
+                text: 'Manakah dari pernyataan berikut yang merupakan kedudukan dan fungsi utama Pancasila bagi bangsa Indonesia menurut Bab 1? (Pilih 3 Jawaban Benar)',
+                options: [
+                    'Pancasila sebagai Dasar Negara',
+                    'Pancasila sebagai Pandangan Hidup Bangsa',
+                    'Pancasila sebagai Ideologi Negara',
+                    'Pancasila sebagai Kitab Undang-Undang Hukum Pidana (KUHP)'
+                ],
+                correct: [0, 1, 2]
+            },
+            {
+                id: 17, type: 'complex', weight: 4,
+                text: 'Berikut ini yang merupakan contoh pengamalan nilai-nilai Pancasila di lingkungan SEKOLAH adalah... (Pilih 3 Jawaban Benar)',
+                options: [
+                    'Menaati peraturan dan tata tertib sekolah',
+                    'Menghormati teman serta tidak melakukan tindakan perundungan (bullying)',
+                    'Melakukan musyawarah dalam organisasi siswa (OSIS atau Pengurus Kelas)',
+                    'Mengatur jadwal ibadah dan tugas harian adik di rumah'
+                ],
+                correct: [0, 1, 2]
+            },
+            {
+                id: 18, type: 'complex', weight: 4,
+                text: 'Perilaku atau gaya hidup yang BERTENTANGAN dengan nilai-nilai Pancasila sebagai pandangan hidup bangsa adalah... (Pilih 2 Jawaban Benar)',
+                options: [
+                    'Konsumerisme (membeli dan menggunakan barang secara berlebihan)',
+                    'Hedonisme (menjadikan kesenangan materi sebagai tujuan utama)',
+                    'Gotong royong membersihkan fasilitas umum',
+                    'Menunjukkan kepedulian dan solidaritas sosial'
+                ],
+                correct: [0, 1]
+            },
+            {
+                id: 19, type: 'complex', weight: 4,
+                text: 'Pancasila memuat nilai-nilai luhur yang menjadi acuan dalam kehidupan bermasyarakat. Manakah yang termasuk nilai-nilai pokok dalam Pancasila? (Pilih 3 Jawaban Benar)',
+                options: [
+                    'Nilai Ketuhanan dan Kemanusiaan',
+                    'Nilai Persatuan dan Permusyawaratan',
+                    'Nilai Keadilan Sosial',
+                    'Nilai Anarkisme dan Individualisme'
+                ],
+                correct: [0, 1, 2]
+            },
+            {
+                id: 20, type: 'complex', weight: 4,
+                text: 'Pengamalan Pancasila di lingkungan KELUARGA ditunjukkan melalui perilaku... (Pilih 3 Jawaban Benar)',
+                options: [
+                    'Berdisiplin dalam beribadah (seperti shalat tepat waktu)',
+                    'Menghormati orang tua dan menyayangi anggota keluarga',
+                    'Belajar rajin dan menjalankan tanggung jawab di rumah',
+                    'Mengabaikan aturan rumah demi bermain game tanpa batas'
+                ],
+                correct: [0, 1, 2]
+            },
+
+            // --- 5 SOAL BENAR / SALAH (@3 POIN = 15 POIN) ---
+            {
+                id: 21, type: 'tf', weight: 3,
+                text: 'Pernyataan: Rumusan Pancasila secara legal-formal termaktub di dalam Pembukaan UUD NRI Tahun 1945 alinea keempat.',
+                options: ['BENAR', 'SALAH'], correct: 0
+            },
+            {
+                id: 22, type: 'tf', weight: 3,
+                text: 'Pernyataan: Istilah "Weltanschauung" berasal dari bahasa Inggris yang berarti tata tertib sekolah tertulis.',
+                options: ['BENAR', 'SALAH'], correct: 1
+            },
+            {
+                id: 23, type: 'tf', weight: 3,
+                text: 'Pernyataan: Secara bahasa, kata "ideologi" berasal dari kata "idea" yang berarti ilmu, dan "logos" yang berarti cita-cita.',
+                options: ['BENAR', 'SALAH'], correct: 1
+            },
+            {
+                id: 24, type: 'tf', weight: 3,
+                text: 'Pernyataan: Mengutamakan musyawarah untuk mufakat dalam pengambilan keputusan merupakan wujud nyata pengamalan Sila Keempat Pancasila.',
+                options: ['BENAR', 'SALAH'], correct: 0
+            },
+            {
+                id: 25, type: 'tf', weight: 3,
+                text: 'Pernyataan: Gaya hidup konsumerisme dan hedonisme sangat selaras dengan pengamalan nilai Keadilan Sosial dan hidup sederhana.',
+                options: ['BENAR', 'SALAH'], correct: 1
+            },
+
+            // --- 3 SOAL MENJODOHKAN (@5 POIN = 15 POIN) ---
+            {
+                id: 26, type: 'match', weight: 5,
+                text: 'Jodohkanlah istilah kedudukan Pancasila di kolom kiri dengan pengertian utamanya di kolom kanan secara tepat!',
+                pairs: [
+                    { left: '1. Pancasila sebagai Dasar Negara', rightOptions: ['Fondasi utama penyelenggaraan dan berdirinya negara', 'Sekumpulan nilai luhur yang menjadi acuan sikap sehari-hari', 'Seperangkat konsep yang memberikan arah dan cita-cita bernegara'], correct: 0 },
+                    { left: '2. Pancasila sebagai Pandangan Hidup', rightOptions: ['Fondasi utama penyelenggaraan dan berdirinya negara', 'Sekumpulan nilai luhur yang menjadi acuan sikap sehari-hari', 'Seperangkat konsep yang memberikan arah dan cita-cita bernegara'], correct: 1 },
+                    { left: '3. Pancasila sebagai Ideologi Negara', rightOptions: ['Fondasi utama penyelenggaraan dan berdirinya negara', 'Sekumpulan nilai luhur yang menjadi acuan sikap sehari-hari', 'Seperangkat konsep yang memberikan arah dan cita-cita bernegara'], correct: 2 }
+                ]
+            },
+            {
+                id: 27, type: 'match', weight: 5,
+                text: 'Jodohkanlah istilah dalam Glosarium Bab 1 berikut dengan definisi yang sesuai!',
+                pairs: [
+                    { left: '1. Konsumerisme', rightOptions: ['Gaya hidup yang menekankan penggunaan barang berlebihan', 'Gaya hidup yang mengutamakan pencarian kesenangan pribadi', 'Sikap kebersamaan dan kepedulian terhadap sesama'], correct: 0 },
+                    { left: '2. Hedonisme', rightOptions: ['Gaya hidup yang menekankan penggunaan barang berlebihan', 'Gaya hidup yang mengutamakan pencarian kesenangan pribadi', 'Sikap kebersamaan dan kepedulian terhadap sesama'], correct: 1 },
+                    { left: '3. Solidaritas Sosial', rightOptions: ['Gaya hidup yang menekankan penggunaan barang berlebihan', 'Gaya hidup yang mengutamakan pencarian kesenangan pribadi', 'Sikap kebersamaan dan kepedulian terhadap sesama'], correct: 2 }
+                ]
+            },
+            {
+                id: 28, type: 'match', weight: 5,
+                text: 'Jodohkanlah contoh penerapan nilai Pancasila berikut dengan lingkungan pengamalannya!',
+                pairs: [
+                    { left: '1. Disiplin beribadah & menghormati orang tua', rightOptions: ['Lingkungan Keluarga', 'Lingkungan Sekolah', 'Lingkungan Masyarakat'], correct: 0 },
+                    { left: '2. Menghormati teman & tidak melakukan bullying', rightOptions: ['Lingkungan Keluarga', 'Lingkungan Sekolah', 'Lingkungan Masyarakat'], correct: 1 },
+                    { left: '3. Menjaga keharmonisan RT & membantu warga berduka', rightOptions: ['Lingkungan Keluarga', 'Lingkungan Sekolah', 'Lingkungan Masyarakat'], correct: 2 }
+                ]
+            },
+
+            // --- 2 SOAL URAIAN (@10 POIN = 20 POIN) ---
+            {
+                id: 29, type: 'essay', weight: 10,
+                text: 'Jelaskan secara singkat apa yang dimaksud dengan Pancasila sebagai "Weltanschauung" sebagaimana disampaikan oleh Ir. Soekarno dalam pidato 1 Juni 1945!',
+                rubrik: 'Kunci/Rubrik: Weltanschauung berasal dari bahasa Jerman (welt = dunia, anschauung = pandangan). Artinya sekumpulan nilai-nilai luhur yang menjadi orientasi, panduan, atau pedoman bangsa Indonesia dalam memahami dan menjalani kehidupan sehari-hari.'
+            },
+            {
+                id: 30, type: 'essay', weight: 10,
+                text: 'Sebutkan 3 (tiga) contoh tindakan konkret siswa di lingkungan sekolah yang mencerminkan pengamalan Pancasila untuk mencegah perundungan (bullying)!',
+                rubrik: 'Kunci/Rubrik: Contoh jawaban: 1) Saling menghargai teman tanpa membeda-bedakan suku/agama, 2) Bekerja sama dan membantu teman yang kesulitan, 3) Melakukan musyawarah jika ada perselisihan dan menaati tata tertib sekolah.'
+            }
+        ];
+
+        // GLOBAL STATE MANAGEMENT
+        let currentQuestionIndex = 0;
+        let studentAnswers = {};
+        let flaggedQuestions = {};
+        let cheatCount = 0;
+        let timerInterval = null;
+        let timeRemaining = 150 * 60; // 150 Menit = 9000 Detik
+        let studentInfo = { nama: '', nisn: '', kelas: '' };
+        let webhookUrl = DEFAULT_WEBHOOK_URL || localStorage.getItem('uts_webhook_url') || '';
+        let localSubmissions = JSON.parse(localStorage.getItem('uts_pancasila_submissions') || '[]');
+
+        // UTILITY DIALOGS & TOASTS
+        function showToast(message) {
+            const toast = document.getElementById('custom-toast');
+            const toastMsg = document.getElementById('toast-message');
+            if (!toast || !toastMsg) return;
+            toastMsg.innerText = message;
+            toast.classList.remove('hidden', 'translate-y-10', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        let noticeCallback = null;
+        function showModalNotice(title, message, type = 'info', onOk = null) {
+            const modal = document.getElementById('custom-modal-notice');
+            const titleEl = document.getElementById('notice-title');
+            const msgEl = document.getElementById('notice-message');
+            const iconEl = document.getElementById('notice-icon');
+            
+            titleEl.innerText = title;
+            msgEl.innerText = message;
+            noticeCallback = onOk;
+
+            if (type === 'error' || type === 'warning') {
+                iconEl.className = 'fa-solid fa-triangle-exclamation text-2xl text-amber-500';
+            } else {
+                iconEl.className = 'fa-solid fa-circle-info text-2xl text-brand-500';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeNoticeModal() {
+            document.getElementById('custom-modal-notice').classList.add('hidden');
+            if (noticeCallback) {
+                const cb = noticeCallback;
+                noticeCallback = null;
+                cb();
+            }
+        }
+
+        let confirmCallback = null;
+        function showConfirmModal(title, message, onConfirm) {
+            const modal = document.getElementById('custom-modal-confirm');
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            confirmCallback = onConfirm;
+            modal.classList.remove('hidden');
+        }
+
+        function closeConfirmModal(isConfirmed) {
+            document.getElementById('custom-modal-confirm').classList.add('hidden');
+            if (isConfirmed && confirmCallback) {
+                confirmCallback();
+            }
+            confirmCallback = null;
+        }
+
+        // INITIALIZATION
+        window.addEventListener('DOMContentLoaded', () => {
+            if (webhookUrl) {
+                document.getElementById('setting-webhook-url').value = webhookUrl;
+            }
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        });
+
+        // TEACHER AUTH & MODALS
+        function openTeacherAuthModal() {
+            document.getElementById('input-teacher-pin').value = '';
+            document.getElementById('modal-teacher-auth').classList.remove('hidden');
+        }
+
+        function closeTeacherAuthModal() {
+            document.getElementById('modal-teacher-auth').classList.add('hidden');
+        }
+
+        function verifyTeacherPin() {
+            const pin = document.getElementById('input-teacher-pin').value.trim();
+            if (pin === 'GURU123' || pin === 'guru123') {
+                closeTeacherAuthModal();
+                toggleTeacherModal();
+                renderMonitorTable();
+            } else {
+                showModalNotice('PIN SALAH', 'PIN Guru yang Anda masukkan salah. Default PIN adalah GURU123', 'error');
+            }
+        }
+
+        function toggleTeacherModal() {
+            const modal = document.getElementById('modal-teacher');
+            modal.classList.toggle('hidden');
+        }
+
+        function switchTeacherTab(tab) {
+            const setupTab = document.getElementById('teacher-tab-setup');
+            const monitorTab = document.getElementById('teacher-tab-monitor');
+            const btnSetup = document.getElementById('tab-btn-setup');
+            const btnMonitor = document.getElementById('tab-btn-monitor');
+
+            if (tab === 'setup') {
+                setupTab.classList.remove('hidden');
+                monitorTab.classList.add('hidden');
+                btnSetup.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm transition';
+                btnMonitor.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+            } else {
+                setupTab.classList.add('hidden');
+                monitorTab.classList.remove('hidden');
+                btnMonitor.className = 'px-3 py-1.5 rounded-lg bg-white text-slate-800 shadow-sm transition';
+                btnSetup.className = 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+                renderMonitorTable();
+            }
+        }
+
+        function saveTeacherSettings() {
+            const url = document.getElementById('setting-webhook-url').value.trim();
+            webhookUrl = url;
+            localStorage.setItem('uts_webhook_url', url);
+            document.getElementById('webhook-saved-status').innerText = 'Tersimpan & Aktif';
+            showToast('URL Webhook berhasil disimpan!');
+        }
+
+        async function testWebhookConnection() {
+            const url = document.getElementById('setting-webhook-url').value.trim();
+            if (!url) {
+                showModalNotice('URL WEBHOOK KOSONG', 'Silakan masukkan URL Webhook Google Apps Script terlebih dahulu.', 'error');
+                return;
+            }
+
+            saveTeacherSettings();
+            showToast('Mengirimkan sinyal uji koneksi ke Google Sheets...');
+
+            try {
+                // Using text/plain mode no-cors for zero CORS issues
+                await fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ isTest: true })
+                });
+
+                showModalNotice('UJI KONEKSI TERKIRIM', 'Sinyal uji telah dikirim ke Google Apps Script! Silakan periksa Google Sheet Anda; jika judul baris/header otomatis terbentuk, maka integrasi BERHASIL!', 'info');
+            } catch (err) {
+                showModalNotice('GAGAL TERHUBUNG', 'Gagal mengirim sinyal ke URL Google Apps Script. Pastikan URL sudah benar dan opsi "Who has access" saat Deploy diset ke "Anyone".', 'error');
+            }
+        }
+
+        function copyScriptCode() {
+            const textEl = document.getElementById('script-code');
+            textEl.select();
+            textEl.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                showToast('Kode Apps Script V2 berhasil disalin!');
+            } catch (err) {
+                showToast('Gagal menyalin. Silakan salin manual.');
+            }
+        }
+
+        // LIVE MONITOR TABLE
+        function renderMonitorTable() {
+            const tbody = document.getElementById('monitor-table-body');
+            tbody.innerHTML = '';
+
+            if (localSubmissions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="p-8 text-center text-slate-400">
+                            <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+                            Belum ada hasil ujian dikumpulkan.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            localSubmissions.forEach((sub, idx) => {
+                const totalFinal = (sub.skorObjektif || 0) + (parseInt(sub.nilaiUraian29) || 0) + (parseInt(sub.nilaiUraian30) || 0);
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-500">${idx + 1}</td>
+                    <td class="p-3 font-bold text-slate-800">${sub.nama}</td>
+                    <td class="p-3">${sub.kelas} <br><span class="text-[10px] text-slate-400">NISN: ${sub.nisn}</span></td>
+                    <td class="p-3 text-center font-bold text-brand-600">${sub.skorObjektif} / 80</td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" max="10" value="${sub.nilaiUraian29 || 0}" 
+                            onchange="updateEssayScore(${sub.id}, 29, this.value)" 
+                            class="w-14 text-center p-1 border rounded-md font-bold focus:ring-2 focus:ring-red-500 outline-none">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="0" max="10" value="${sub.nilaiUraian30 || 0}" 
+                            onchange="updateEssayScore(${sub.id}, 30, this.value)" 
+                            class="w-14 text-center p-1 border rounded-md font-bold focus:ring-2 focus:ring-red-500 outline-none">
+                    </td>
+                    <td class="p-3 text-center font-extrabold text-emerald-600 text-sm">${totalFinal} / 100</td>
+                    <td class="p-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${sub.pindahTab > 0 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-emerald-100 text-emerald-700'}">
+                            ${sub.pindahTab || 0}x
+                        </span>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="viewStudentAnswersDetail(${sub.id})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition">
+                            <i class="fa-solid fa-eye me-1"></i> Detail
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateEssayScore(subId, essayNum, value) {
+            const valNum = Math.min(10, Math.max(0, parseInt(value) || 0));
+            const sub = localSubmissions.find(s => s.id === subId);
+            if (sub) {
+                if (essayNum === 29) sub.nilaiUraian29 = valNum;
+                if (essayNum === 30) sub.nilaiUraian30 = valNum;
+                localStorage.setItem('uts_pancasila_submissions', JSON.stringify(localSubmissions));
+                renderMonitorTable();
+                showToast(`Nilai Uraian Soal ${essayNum} diperbarui menjadi ${valNum}!`);
+            }
+        }
+
+        function viewStudentAnswersDetail(subId) {
+            const sub = localSubmissions.find(s => s.id === subId);
+            if (!sub) return;
+
+            const detailMsg = `
+NAMA: ${sub.nama} (${sub.kelas}) | NISN: ${sub.nisn}
+----------------------------------------
+JAWABAN URAIAN NO 29 (Bobot Max 10):
+"${sub.jawabanUraian29 || '-'}"
+
+JAWABAN URAIAN NO 30 (Bobot Max 10):
+"${sub.jawabanUraian30 || '-'}"
+            `;
+
+            showModalNotice(`LEMBAR URAIAN: ${sub.nama}`, detailMsg, 'info');
+        }
+
+        function downloadAllSubmissionsCSV() {
+            if (localSubmissions.length === 0) {
+                showModalNotice('BELUM ADA DATA', 'Belum ada data siswa yang mengumpulkan ujian.', 'warning');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Nama Siswa,NISN,Kelas,Skor Objektif,Nilai Uraian 29,Nilai Uraian 30,Total Nilai Akhir,Pindah Tab,Waktu Kumpul,Jawaban Uraian 29,Jawaban Uraian 30\n";
+
+            localSubmissions.forEach(s => {
+                const total = (s.skorObjektif || 0) + (parseInt(s.nilaiUraian29) || 0) + (parseInt(s.nilaiUraian30) || 0);
+                const u29 = (s.jawabanUraian29 || "").replace(/"/g, '""');
+                const u30 = (s.jawabanUraian30 || "").replace(/"/g, '""');
+                csvContent += `"${s.nama}","'${s.nisn}","${s.kelas}","${s.skorObjektif}","${s.nilaiUraian29 || 0}","${s.nilaiUraian30 || 0}","${total}","${s.pindahTab}","${s.timestamp}","${u29}","${u30}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `REKAP_NILAI_UTS_PANCASILA_KELAS8_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function filterMonitorTable() {
+            const query = document.getElementById('monitor-search').value.toLowerCase();
+            const kelas = document.getElementById('monitor-filter-kelas').value;
+
+            const rows = document.querySelectorAll('#monitor-table-body tr');
+            rows.forEach(tr => {
+                const text = tr.innerText.toLowerCase();
+                const matchesQuery = text.includes(query);
+                const matchesKelas = !kelas || text.includes(kelas.toLowerCase());
+                tr.style.display = matchesQuery && matchesKelas ? '' : 'none';
+            });
+        }
+
+        // EXAM LOCK & CHEAT DETECTOR
+        function handleVisibilityChange() {
+            const examScreen = document.getElementById('screen-exam');
+            if (document.visibilityState === 'hidden' && !examScreen.classList.contains('hidden')) {
+                cheatCount++;
+                document.getElementById('cheat-count').innerText = cheatCount;
+                document.getElementById('cheat-warning-badge').classList.remove('hidden');
+                
+                showModalNotice('PERINGATAN KECURANGAN!', `Anda terdeteksi meninggalkan layar/tab ujian (${cheatCount}x). Aktivitas ini dicatat dan dilaporkan kepada Guru!`, 'warning');
+            }
+        }
+
+        // START EXAM MODE
+        function startExam() {
+            const nama = document.getElementById('input-nama').value.trim();
+            const nisn = document.getElementById('input-nisn').value.trim();
+            const kelas = document.getElementById('input-kelas').value;
+            const token = document.getElementById('input-token').value.trim();
+
+            if (!nama || !nisn || !kelas) {
+                showModalNotice('DATA SISWA BELUM LENGKAP', 'Silakan isi Nama, NISN, dan Kelas terlebih dahulu.', 'error');
+                return;
+            }
+
+            if (token !== 'UTS2026') {
+                showModalNotice('TOKEN UJIAN SALAH', 'Silakan masukkan token ujian yang diberikan guru (Default: UTS2026).', 'error');
+                return;
+            }
+
+            studentInfo = { nama, nisn, kelas };
+            document.getElementById('exam-student-info').innerText = `${nama} | NISN: ${nisn} | Kelas: ${kelas}`;
+
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+
+            document.getElementById('main-header').classList.add('hidden');
+            document.getElementById('main-footer').classList.add('hidden');
+            document.getElementById('screen-start').classList.add('hidden');
+            
+            const examScreen = document.getElementById('screen-exam');
+            examScreen.classList.remove('hidden');
+            examScreen.classList.add('exam-locked');
+
+            currentQuestionIndex = 0;
+            cheatCount = 0;
+            document.getElementById('cheat-count').innerText = '0';
+            document.getElementById('cheat-warning-badge').classList.add('hidden');
+
+            renderQuestion(0);
+            renderQuestionPalette();
+            startTimer();
+        }
+
+        // TIMER LOGIC
+        function startTimer() {
+            timeRemaining = 150 * 60;
+            updateTimerDisplay();
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    showModalNotice('WAKTU HABIS!', 'Waktu ujian 150 menit telah selesai. Jawaban Anda akan otomatis dikumpulkan.', 'warning', () => {
+                        submitExam();
+                    });
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('timer-display').innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // RENDER QUESTION
+        function renderQuestion(index) {
+            currentQuestionIndex = index;
+            const q = examQuestions[index];
+
+            document.getElementById('q-number-badge').innerText = `Soal No. ${index + 1} dari 30`;
+            
+            const typeLabels = {
+                'pg': 'Pilihan Ganda (Bobot 2)',
+                'complex': 'Pilihan Ganda Kompleks (Bobot 4)',
+                'tf': 'Benar / Salah (Bobot 3)',
+                'match': 'Menjodohkan (Bobot 5)',
+                'essay': 'Uraian / Essay (Bobot 10)'
+            };
+            document.getElementById('q-type-badge').innerText = typeLabels[q.type] || 'Soal';
+
+            document.getElementById('q-text').innerText = q.text;
+
+            // Flag state
+            const flagBtn = document.getElementById('btn-flag');
+            if (flaggedQuestions[index]) {
+                flagBtn.className = 'text-xs font-bold text-amber-600 bg-amber-50 border-amber-300 transition flex items-center gap-1 px-2.5 py-1 rounded-lg border';
+            } else {
+                flagBtn.className = 'text-xs font-bold text-slate-400 hover:text-amber-500 transition flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200';
+            }
+
+            const optionsContainer = document.getElementById('q-options');
+            optionsContainer.innerHTML = '';
+
+            const studentAns = studentAnswers[index];
+
+            if (q.type === 'pg' || q.type === 'tf') {
+                q.options.forEach((opt, optIdx) => {
+                    const isSelected = studentAns === optIdx;
+                    const div = document.createElement('div');
+                    div.onclick = () => selectOption(optIdx);
+                    div.className = `p-3.5 rounded-xl border-2 transition cursor-pointer flex items-center gap-3 text-xs md:text-sm ${
+                        isSelected 
+                        ? 'border-brand-600 bg-brand-50/50 text-brand-900 font-semibold shadow-sm' 
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                    }`;
+
+                    const letters = ['A', 'B', 'C', 'D'];
+                    const prefix = q.type === 'pg' ? `<span class="w-6 h-6 rounded-lg font-bold flex items-center justify-center text-xs ${isSelected ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-600'}">${letters[optIdx]}</span>` : '';
+
+                    div.innerHTML = `${prefix} <span>${opt}</span>`;
+                    optionsContainer.appendChild(div);
+                });
+            } else if (q.type === 'complex') {
+                const selectedArr = Array.isArray(studentAns) ? studentAns : [];
+                q.options.forEach((opt, optIdx) => {
+                    const isSelected = selectedArr.includes(optIdx);
+                    const div = document.createElement('div');
+                    div.onclick = () => toggleComplexOption(optIdx);
+                    div.className = `p-3.5 rounded-xl border-2 transition cursor-pointer flex items-center gap-3 text-xs md:text-sm ${
+                        isSelected 
+                        ? 'border-brand-600 bg-brand-50/50 text-brand-900 font-semibold shadow-sm' 
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                    }`;
+
+                    div.innerHTML = `
+                        <div class="w-5 h-5 rounded border flex items-center justify-center text-xs ${isSelected ? 'bg-brand-600 border-brand-600 text-white' : 'border-slate-300 bg-white'}">
+                            ${isSelected ? '<i class="fa-solid fa-check"></i>' : ''}
+                        </div>
+                        <span>${opt}</span>
+                    `;
+                    optionsContainer.appendChild(div);
+                });
+            } else if (q.type === 'match') {
+                const matchAns = studentAns || {};
+                q.pairs.forEach((pair, pairIdx) => {
+                    const pairBox = document.createElement('div');
+                    pairBox.className = 'p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2';
+
+                    const selectedOpt = matchAns[pairIdx];
+
+                    let selectHtml = `<select onchange="selectMatchOption(${pairIdx}, this.value)" class="w-full p-2.5 border rounded-lg text-xs font-semibold bg-white outline-none focus:ring-2 focus:ring-red-500">`;
+                    selectHtml += `<option value="">-- Pilih Pasangan Jawaban --</option>`;
+                    pair.rightOptions.forEach((rOpt, rIdx) => {
+                        const isSel = selectedOpt === rIdx;
+                        selectHtml += `<option value="${rIdx}" ${isSel ? 'selected' : ''}>${rOpt}</option>`;
+                    });
+                    selectHtml += `</select>`;
+
+                    pairBox.innerHTML = `
+                        <div class="text-xs font-bold text-slate-800">${pair.left}</div>
+                        ${selectHtml}
+                    `;
+                    optionsContainer.appendChild(pairBox);
+                });
+            } else if (q.type === 'essay') {
+                const essayText = studentAns || '';
+                const textarea = document.createElement('textarea');
+                textarea.rows = 6;
+                textarea.placeholder = 'Tuliskan jawaban uraian lengkap Anda di sini...';
+                textarea.className = 'w-full p-4 border-2 rounded-xl text-xs md:text-sm outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100 transition bg-slate-50 focus:bg-white';
+                textarea.value = essayText;
+                textarea.oninput = (e) => {
+                    studentAnswers[currentQuestionIndex] = e.target.value;
+                    renderQuestionPalette();
+                };
+                optionsContainer.appendChild(textarea);
+            }
+
+            // Prev / Next button disable state
+            document.getElementById('btn-prev').disabled = index === 0;
+            document.getElementById('btn-next').innerText = index === examQuestions.length - 1 ? 'Selesai & Kumpulkan' : 'Selanjutnya';
+
+            document.getElementById('q-progress-text').innerText = `${index + 1} dari 30 Soal`;
+            renderQuestionPalette();
+        }
+
+        // INPUT SELECTION HELPERS
+        function selectOption(optIdx) {
+            studentAnswers[currentQuestionIndex] = optIdx;
+            renderQuestion(currentQuestionIndex);
+        }
+
+        function toggleComplexOption(optIdx) {
+            if (!Array.isArray(studentAnswers[currentQuestionIndex])) {
+                studentAnswers[currentQuestionIndex] = [];
+            }
+            const arr = studentAnswers[currentQuestionIndex];
+            const pos = arr.indexOf(optIdx);
+            if (pos > -1) {
+                arr.splice(pos, 1);
+            } else {
+                arr.push(optIdx);
+            }
+            renderQuestion(currentQuestionIndex);
+        }
+
+        function selectMatchOption(pairIdx, rightIdx) {
+            if (!studentAnswers[currentQuestionIndex] || typeof studentAnswers[currentQuestionIndex] !== 'object') {
+                studentAnswers[currentQuestionIndex] = {};
+            }
+            if (rightIdx === "") {
+                delete studentAnswers[currentQuestionIndex][pairIdx];
+            } else {
+                studentAnswers[currentQuestionIndex][pairIdx] = parseInt(rightIdx);
+            }
+            renderQuestionPalette();
+        }
+
+        function toggleFlag() {
+            if (flaggedQuestions[currentQuestionIndex]) {
+                delete flaggedQuestions[currentQuestionIndex];
+            } else {
+                flaggedQuestions[currentQuestionIndex] = true;
+            }
+            renderQuestion(currentQuestionIndex);
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                renderQuestion(currentQuestionIndex - 1);
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < examQuestions.length - 1) {
+                renderQuestion(currentQuestionIndex + 1);
+            } else {
+                confirmSubmitExam();
+            }
+        }
+
+        function jumpToQuestion(index) {
+            renderQuestion(index);
+        }
+
+        // RENDER QUESTION PALETTE
+        function renderQuestionPalette() {
+            const palette = document.getElementById('question-palette');
+            palette.innerHTML = '';
+
+            examQuestions.forEach((q, idx) => {
+                const btn = document.createElement('button');
+                btn.onclick = () => jumpToQuestion(idx);
+                
+                const isCurrent = idx === currentQuestionIndex;
+                const isFlagged = flaggedQuestions[idx];
+                const isAnswered = studentAnswers[idx] !== undefined && studentAnswers[idx] !== null && studentAnswers[idx] !== '';
+
+                let bgClass = 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200';
+                if (isAnswered) bgClass = 'bg-brand-600 text-white font-bold shadow-sm';
+                if (isFlagged) bgClass = 'bg-amber-400 text-slate-900 font-bold';
+                if (isCurrent) bgClass += ' ring-2 ring-red-600 ring-offset-1';
+
+                btn.className = `w-full h-10 rounded-lg text-xs font-semibold flex items-center justify-center transition border ${bgClass}`;
+                btn.innerText = idx + 1;
+
+                palette.appendChild(btn);
+            });
+        }
+
+        // CONFIRM & SUBMIT EXAM
+        function confirmSubmitExam() {
+            let unanswered = 0;
+            examQuestions.forEach((q, idx) => {
+                if (studentAnswers[idx] === undefined || studentAnswers[idx] === null || studentAnswers[idx] === '') {
+                    unanswered++;
+                }
+            });
+
+            let msg = 'Apakah Anda yakin ingin mengumpulkan ujian sekarang?';
+            if (unanswered > 0) {
+                msg = `Masih ada ${unanswered} soal yang belum dijawab! Yakin ingin mengumpulkan?`;
+            }
+
+            showConfirmModal('KONFIRMASI KUMPULKAN UJIAN', msg, () => {
+                submitExam();
+            });
+        }
+
+        async function submitExam() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            // Calculate Objective Score
+            let objectiveScore = 0;
+            examQuestions.forEach((q, idx) => {
+                const studentAns = studentAnswers[idx];
+                if (studentAns === undefined || studentAns === null) return;
+
+                if (q.type === 'pg' || q.type === 'tf') {
+                    if (studentAns === q.correct) objectiveScore += q.weight;
+                } else if (q.type === 'complex') {
+                    if (Array.isArray(studentAns)) {
+                        const sortedStudent = [...studentAns].sort((a,b)=>a-b);
+                        const sortedCorrect = [...q.correct].sort((a,b)=>a-b);
+                        if (JSON.stringify(sortedStudent) === JSON.stringify(sortedCorrect)) {
+                            objectiveScore += q.weight;
+                        }
+                    }
+                } else if (q.type === 'match') {
+                    let allCorrect = true;
+                    q.pairs.forEach((pair, pairIdx) => {
+                        if (!studentAns || studentAns[pairIdx] !== pair.correct) allCorrect = false;
+                    });
+                    if (allCorrect) objectiveScore += q.weight;
+                }
+            });
+
+            const ans29 = studentAnswers[28] || '-';
+            const ans30 = studentAnswers[29] || '-';
+
+            const submissionRecord = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString('id-ID'),
+                nama: studentInfo.nama,
+                nisn: studentInfo.nisn,
+                kelas: studentInfo.kelas,
+                skorObjektif: objectiveScore,
+                pindahTab: cheatCount,
+                jawabanUraian29: typeof ans29 === 'string' ? ans29 : JSON.stringify(ans29),
+                jawabanUraian30: typeof ans30 === 'string' ? ans30 : JSON.stringify(ans30),
+                nilaiUraian29: 0,
+                nilaiUraian30: 0,
+                jawabanDetail: studentAnswers
+            };
+
+            localSubmissions.unshift(submissionRecord);
+            localStorage.setItem('uts_pancasila_submissions', JSON.stringify(localSubmissions));
+
+            document.getElementById('screen-exam').classList.add('hidden');
+            document.getElementById('screen-exam').classList.remove('exam-locked');
+            
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
+
+            document.getElementById('main-header').classList.remove('hidden');
+            document.getElementById('main-footer').classList.remove('hidden');
+
+            const resScreen = document.getElementById('screen-result');
+            resScreen.classList.remove('hidden');
+
+            document.getElementById('res-objective-score').innerText = `${objectiveScore} / 80`;
+            document.getElementById('res-total-score').innerText = `${objectiveScore} Pts + Essay`;
+            document.getElementById('res-nama').innerText = studentInfo.nama;
+            document.getElementById('res-kelas').innerText = `${studentInfo.kelas} / NISN: ${studentInfo.nisn}`;
+            document.getElementById('res-waktu').innerText = submissionRecord.timestamp;
+            document.getElementById('res-cheat').innerText = `${cheatCount} kali`;
+            document.getElementById('res-essay-29').innerText = submissionRecord.jawabanUraian29;
+            document.getElementById('res-essay-30').innerText = submissionRecord.jawabanUraian30;
+
+            const sheetStatusEl = document.getElementById('res-sheet-status');
+            
+            // SEND TO GOOGLE SHEET WITH TEXT/PLAIN MODE (CORS SAFE)
+            const activeWebhook = webhookUrl || DEFAULT_WEBHOOK_URL;
+            if (activeWebhook) {
+                sheetStatusEl.innerHTML = `<span class="text-amber-600"><i class="fa-solid fa-spinner animate-spin"></i> Mengirim ke Google Sheet...</span>`;
+                
+                try {
+                    await fetch(activeWebhook, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(submissionRecord)
+                    });
+                    
+                    sheetStatusEl.innerHTML = `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check me-1"></i> Terkirim &amp; Ter-update di Google Sheet</span>`;
+                } catch (err) {
+                    sheetStatusEl.innerHTML = `<span class="text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> Tersimpan di Browser (Gagal Kirim ke Sheet)</span>`;
+                }
+            } else {
+                sheetStatusEl.innerHTML = `<span class="text-slate-500 font-bold"><i class="fa-solid fa-hard-drive me-1"></i> Tersimpan Lokal (Set Webhook di Panel Guru)</span>`;
+            }
+        }
+
+        // PRINT REPORT CERTIFICATE FUNCTION
+        function printExamCertificate() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
